@@ -35,6 +35,10 @@ node src/cli.ts run --adapter claude --tasks tasks --save-baseline    # first ru
 node src/cli.ts run --adapter claude --tasks tasks --baseline --fail-on-regression
 ```
 
+**Which agents, editors and models?** Today: Claude Code CLI (verified) plus a mock agent, from any
+terminal, any VS Code–compatible editor, or CI. Codex / Gemini adapters are one file each —
+see [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
+
 ## What it catches
 
 | What you notice | What agentdrift measures | Where the number comes from |

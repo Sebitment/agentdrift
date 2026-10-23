@@ -173,7 +173,7 @@ async function writeLastRun(results, adapterId, deltas) {
 }
 main().catch((error) => {
     console.error(`error: ${error instanceof Error ? error.message : String(error)}`);
-    if (process.env.AGENTGATE_DEBUG)
+    if (process.env.AGENTDRIFT_DEBUG)
         console.error(error instanceof Error ? error.stack : '');
     process.exitCode = 2;
 });

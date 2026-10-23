@@ -198,6 +198,6 @@ async function writeLastRun(results: TaskResult[], adapterId: string, deltas: Ta
 
 main().catch((error) => {
   console.error(`error: ${error instanceof Error ? error.message : String(error)}`)
-  if (process.env.AGENTGATE_DEBUG) console.error(error instanceof Error ? error.stack : '')
+  if (process.env.AGENTDRIFT_DEBUG) console.error(error instanceof Error ? error.stack : '')
   process.exitCode = 2
 })

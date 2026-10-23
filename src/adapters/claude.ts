@@ -18,7 +18,7 @@ const BASE_ARGS = [
  * parses its stream-json events. Unavailable in CI unless the CLI is installed.
  */
 export function claudeAdapter(opts: ClaudeOptions = {}): Adapter {
-  const bin = opts.bin ?? process.env.AGENTGATE_CLAUDE_BIN ?? 'claude'
+  const bin = opts.bin ?? process.env.AGENTDRIFT_CLAUDE_BIN ?? 'claude'
   const shell = process.platform === 'win32'
 
   return {
