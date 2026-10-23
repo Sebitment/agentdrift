@@ -9,7 +9,14 @@ import type { LoadedTask, Task } from './types.ts'
  * repo/ (the starting point the agent gets to edit).
  */
 export async function loadTasks(tasksDir: string): Promise<LoadedTask[]> {
-  const entries = await readdir(tasksDir, { withFileTypes: true })
+  let entries
+  try {
+    entries = await readdir(tasksDir, { withFileTypes: true })
+  } catch {
+    throw new Error(
+      `no tasks directory at "${tasksDir}". Run agentgate from the repo root, or pass --tasks <dir>`,
+    )
+  }
   const loaded: LoadedTask[] = []
 
   for (const entry of entries) {

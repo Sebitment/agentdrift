@@ -182,7 +182,8 @@ async function main(): Promise<void> {
   if (failed > 0 && !flags['exit-zero']) process.exitCode = 1
 }
 
-main().catch((err) => {
-  console.error(err instanceof Error ? err.stack : String(err))
-  process.exitCode = 1
+main().catch((error) => {
+  console.error(`error: ${error instanceof Error ? error.message : String(error)}`)
+  if (process.env.AGENTGATE_DEBUG) console.error(error instanceof Error ? error.stack : '')
+  process.exitCode = 2
 })
