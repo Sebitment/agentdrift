@@ -32,6 +32,12 @@ The panel contains no testing logic. All the interesting parts — fixtures, che
 budgets, baselines — stay in the CLI. Keeping the panel a pure view is what makes the JSON contract
 worth having: the terminal, CI and the editor read the same file and can never disagree.
 
+## Workspace Trust
+
+The panel declares `capabilities.untrustedWorkspaces.supported: true`, so it stays enabled in
+Restricted Mode (the "受限模式" banner). Without that declaration VS Code disables any extension that
+has a `main` entry point, which is the number one reason a freshly installed panel "doesn't show up".
+
 ## Test
 
 ```bash
