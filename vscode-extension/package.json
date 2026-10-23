@@ -1,0 +1,51 @@
+{
+  "name": "agentdrift-vscode",
+  "displayName": "agentdrift",
+  "description": "Regression results for coding agents, inside VS Code",
+  "version": "0.1.0",
+  "publisher": "sebitment",
+  "license": "MIT",
+  "repository": { "type": "git", "url": "https://github.com/Sebitment/agentgate.git" },
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Testing", "Other"],
+  "keywords": ["agent", "regression", "testing", "ci", "llm"],
+  "activationEvents": ["onStartupFinished", "onView:agentdrift.tasks", "onCommand:agentdrift.run"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        { "id": "agentdrift", "title": "agentdrift", "icon": "media/icon.svg" }
+      ]
+    },
+    "views": {
+      "agentdrift": [{ "id": "agentdrift.tasks", "name": "Tasks" }]
+    },
+    "commands": [
+      { "command": "agentdrift.run", "title": "agentdrift: Run tasks", "icon": "$(play)" },
+      { "command": "agentdrift.openReport", "title": "agentdrift: Open HTML report" },
+      { "command": "agentdrift.refresh", "title": "agentdrift: Refresh", "icon": "$(refresh)" }
+    ],
+    "menus": {
+      "view/title": [
+        { "command": "agentdrift.run", "when": "view == agentdrift.tasks", "group": "navigation@1" },
+        { "command": "agentdrift.refresh", "when": "view == agentdrift.tasks", "group": "navigation@2" }
+      ],
+      "commandPalette": [
+        { "command": "agentdrift.run" },
+        { "command": "agentdrift.openReport" },
+        { "command": "agentdrift.refresh" }
+      ]
+    }
+  },
+  "scripts": {
+    "build": "tsc -p .",
+    "watch": "tsc -p . -w",
+    "test": "tsc -p . && node --test \"test/*.test.mjs\"",
+    "vscode:prepublish": "npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.6.0"
+  }
+}

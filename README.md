@@ -114,6 +114,27 @@ click. Dark and light themes follow the OS setting.
 The file is a pure function of the results (`renderHtml` in `src/html.ts`), so you can rebuild it
 from any `--json` output without re-running the agent.
 
+## VS Code panel
+
+The CLI stays the source of truth; the panel is a thin view over `.agentdrift/last-run.json`, which
+every `agentdrift run` writes.
+
+```bash
+cd vscode-extension
+npm install
+npm run build          # then press F5 with this folder open ("Run Extension")
+```
+
+![agentdrift in the VS Code sidebar](docs/screenshot-vscode.png)
+
+- failed tasks first, each with the reason it went red (stray / over budget / failed check)
+- status bar shows `n/m` and turns orange when anything fails
+- ▶ in the view title runs `node src/cli.ts run --adapter mock`; a task click opens the HTML report
+  in a webview
+
+Because it only reads the last run, a CI run, a terminal run and the panel can never disagree.
+The extension lives in `vscode-extension/` and is not on the marketplace yet — F5 is enough to use it.
+
 ## Quickstart
 
 Requires **Node >= 22.18** — the CLI runs TypeScript directly, there is no build step.

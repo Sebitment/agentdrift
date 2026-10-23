@@ -47,3 +47,19 @@ jobs:
             if (!broken || broken.pass) throw new Error('green-but-broken should fail a check');
             if (broken.filesOutsideAllow.length !== 0) throw new Error('green-but-broken should not be a stray');
           "
+
+  extension:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: build + test the VS Code panel
+        run: |
+          cd vscode-extension
+          npm ci
+          npm run build
+          npm test

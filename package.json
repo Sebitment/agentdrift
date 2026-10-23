@@ -14,7 +14,9 @@
     "demo": "node src/cli.ts run --adapter mock",
     "list": "node src/cli.ts list",
     "test": "node --test \"test/*.test.mjs\"",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "ext:build": "npm --prefix vscode-extension run build",
+    "ext:test": "npm --prefix vscode-extension test"
   },
   "author": "Sebitment",
   "repository": {

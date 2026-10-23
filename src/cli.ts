@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 import { join } from 'node:path'
+import { mkdir, writeFile } from 'node:fs/promises'
 import { loadTasks } from './task.ts'
 import { runTask } from './runner.ts'
 import { mockAdapter } from './adapters/mock.ts'
 import { claudeAdapter } from './adapters/claude.ts'
 import { printReport, renderDelta, toJson, printDelta } from './report.ts'
 import { DEFAULT_BASELINE, diffResults, readBaseline, regressions, writeBaseline } from './baseline.ts'
+import type { TaskDelta } from './baseline.ts'
 import { writeHtml } from './html.ts'
 import { matchGlob } from './glob.ts'
 import type { Adapter, TaskResult } from './types.ts'
@@ -173,6 +175,8 @@ async function main(): Promise<void> {
     console.error(`report written to ${htmlPath}`)
   }
 
+  await writeLastRun(results, adapter.id, deltas)
+
   if (saveBaseline) {
     await writeBaseline(baselinePath, adapter.id, results)
     console.error(`baseline saved to ${baselinePath}`)
@@ -180,6 +184,16 @@ async function main(): Promise<void> {
 
   const failed = results.filter((result) => !result.pass).length
   if (failed > 0 && !flags['exit-zero']) process.exitCode = 1
+}
+
+/** Machine-readable snapshot for editors and scripts (the VS Code panel reads it). */
+async function writeLastRun(results: TaskResult[], adapterId: string, deltas: TaskDelta[]): Promise<void> {
+  const dir = join(process.cwd(), '.agentdrift')
+  await mkdir(dir, { recursive: true })
+  await writeFile(
+    join(dir, 'last-run.json'),
+    `${JSON.stringify({ adapter: adapterId, finishedAt: new Date().toISOString(), deltas, results }, null, 2)}\n`,
+  )
 }
 
 main().catch((error) => {

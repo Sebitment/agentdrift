@@ -6,3 +6,5 @@ dist/
 report.html
 *.report.html
 report.htm
+vscode-extension/out/
+*.vsix
