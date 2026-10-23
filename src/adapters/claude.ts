@@ -25,7 +25,7 @@ export function claudeAdapter(opts: ClaudeOptions = {}): Adapter {
     id: 'claude',
     async detect() {
       return new Promise((resolve) => {
-        const child = spawn(bin, ['--version'], { shell })
+        const child = spawn(`${bin} --version`, { shell })
         let out = ''
         child.stdout?.on('data', (chunk) => (out += String(chunk)))
         child.on('error', () => resolve({ ok: false }))
@@ -42,7 +42,11 @@ export function claudeAdapter(opts: ClaudeOptions = {}): Adapter {
         let error: string | undefined
         let pending = ''
 
-        const child = spawn(bin, [...BASE_ARGS, ...(opts.extraArgs ?? []), prompt], { cwd, shell })
+        const args = [...BASE_ARGS, ...(opts.extraArgs ?? [])]
+        // One command string with the prompt on stdin: no shell escaping of user
+        // text, and no DEP0190 (args array + shell:true) on modern Node.
+        const child = spawn([bin, ...args].join(' '), { cwd, shell })
+        child.stdin?.end(prompt)
         const timer = setTimeout(() => {
           error = `timed out after ${Math.round(timeoutMs / 1000)}s`
           child.kill('SIGKILL')

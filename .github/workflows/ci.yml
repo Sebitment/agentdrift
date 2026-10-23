@@ -32,7 +32,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: agentgate-report
+          name: agentdrift-report
           path: report.html
 
       - name: failure paths still report the right reason

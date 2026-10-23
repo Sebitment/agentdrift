@@ -14,7 +14,7 @@ export async function loadTasks(tasksDir: string): Promise<LoadedTask[]> {
     entries = await readdir(tasksDir, { withFileTypes: true })
   } catch {
     throw new Error(
-      `no tasks directory at "${tasksDir}". Run agentgate from the repo root, or pass --tasks <dir>`,
+      `no tasks directory at "${tasksDir}". Run agentdrift from the repo root, or pass --tasks <dir>`,
     )
   }
   const loaded: LoadedTask[] = []

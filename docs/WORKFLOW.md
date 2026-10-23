@@ -5,7 +5,7 @@
 
 ## 0. 一句话与三条不变量
 
-agentgate 把一次 agent 运行当作构建产物来验收：给它一个任务和一份 fixture 仓库，跑完对比「花了多少」和「动了什么」，不合格就红。
+agentdrift 把一次 agent 运行当作构建产物来验收：给它一个任务和一份 fixture 仓库，跑完对比「花了多少」和「动了什么」，不合格就红。
 
 | 不变量 | 含义 | 具体保证 |
 | --- | --- | --- |
@@ -35,7 +35,7 @@ flowchart TD
 | --- | --- | --- | --- | --- |
 | S1 装载 | `src/task.ts#loadTasks` | `--tasks` 目录 | 按 id 排序的 `LoadedTask[]` | 目录不存在；模块没有导出 `{id, prompt}` |
 | S1' 过滤 | `src/cli.ts` | `--only` | 子集 | 过滤后为空 → exit 2 |
-| S2 建工作区 | `src/runner.ts#runTask` | `LoadedTask` | `.agentgate/work/<id>/` 已初始化 | git 不可用 |
+| S2 建工作区 | `src/runner.ts#runTask` | `LoadedTask` | `.agentdrift/work/<id>/` 已初始化 | git 不可用 |
 | S3 执行 | `src/adapters/*#run` | `RunContext` | `RunResult` | 超时（`maxMinutes`，默认 5）→ 记 error，不中断批次 |
 | S4 度量 | `src/runner.ts` | 工作区 | 改动文件 / 检查结果 / usage | 单条 check 超时（默认 120s）→ 记 exit 124 |
 | S5 判定 | `src/runner.ts` | 上面三路 | `TaskResult.pass` | — |
@@ -81,8 +81,8 @@ tasks/<id>/         正式任务，提交进仓库，必须全绿
   mock.json         离线适配器的剧本（不参与真实运行）
   repo/             夹具仓库，agent 从这里开始改
 examples/<id>/      故意失败的任务，CI 用来验证“失败路径还能正确报错”
-.agentgate/work/    运行时产物，已 gitignore，可随时删
-.agentgate/baseline.json   上次运行的快照，`--save-baseline` 写入，同样 gitignore
+.agentdrift/work/    运行时产物，已 gitignore，可随时删
+.agentdrift/baseline.json   上次运行的快照，`--save-baseline` 写入，同样 gitignore
 ```
 
 ### 1.5 基线对比（v0.2）
@@ -91,7 +91,7 @@ examples/<id>/      故意失败的任务，CI 用来验证“失败路径还能
 
 | 命令 | 作用 |
 | --- | --- |
-| `--save-baseline` | 把本次结果写进 `.agentgate/baseline.json`（含 adapter 名与时间戳） |
+| `--save-baseline` | 把本次结果写进 `.agentdrift/baseline.json`（含 adapter 名与时间戳） |
 | `--baseline` | 跑完后与基线逐任务对比，额外打印一段 delta |
 | `--baseline-file <path>` | 换一个基线文件（想把基线提交进仓库时用） |
 | `--fail-on-regression` | 出现退化时退出码 1 |
@@ -106,7 +106,7 @@ delta 行：`<id>  <本轮状态>  tokens +5,160 (+58.4%)  stray +1`；跨轮变
 
 > 基线里的 token 和耗时是机器相关的，默认不提交；要多机对比就把 `--baseline-file` 指向仓库内固定路径。
 > 想在本机看一段「真的变差了」的 delta：`node scripts/make-drift.mjs`，然后跑
-> `node src/cli.ts run --adapter mock --tasks .agentgate/tmp-drift --baseline`。
+> `node src/cli.ts run --adapter mock --tasks .agentdrift/tmp-drift --baseline`。
 
 ### 1.6 可视化报告（v0.2）
 

@@ -2,7 +2,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
 import type { TaskResult } from './types.ts'
 
-export const DEFAULT_BASELINE = '.agentgate/baseline.json'
+export const DEFAULT_BASELINE = '.agentdrift/baseline.json'
 
 /** A previous run, saved so the next run can be compared against it. */
 export type Baseline = {

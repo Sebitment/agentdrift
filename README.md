@@ -1,10 +1,10 @@
-# agentgate
+# agentdrift
 
 **Regression tests for coding agents.**
 
 You test your code. You don't test what the agent does to it.
 
-agentgate treats an agent run like a build artifact: hand it a task on a fixture repo, then diff
+agentdrift treats an agent run like a build artifact: hand it a task on a fixture repo, then diff
 what it *spent* and what it *touched*. If it blows the token budget, edits files you never
 mentioned, or breaks a test, the run goes red — before it reaches `main`.
 
@@ -50,7 +50,7 @@ that actually hurt in daily use:
 2. **It changed what?** A one-line fix that rewrites `package.json` and three unrelated files is a
    bug in the agent, and nobody notices because the tests still pass.
 
-agentgate is a **gate**, not a leaderboard: it runs your own fixtures in CI, against the agent you
+agentdrift is a **gate**, not a leaderboard: it runs your own fixtures in CI, against the agent you
 actually use.
 
 ## How it works
@@ -64,7 +64,7 @@ tasks/<id>/
 
 For every task:
 
-1. copy `repo/` into `.agentgate/work/<id>/` and `git init` + commit a baseline
+1. copy `repo/` into `.agentdrift/work/<id>/` and `git init` + commit a baseline
 2. hand `prompt` to the adapter
 3. `git status` → files touched; anything outside `allow` is a **stray**
 4. run `checks` (plain shell commands) → pass/fail
@@ -93,7 +93,7 @@ vs baseline 2026-10-23 10:05:55 (mock)
 ```
 
 A **regression** is any of: a task that used to pass now fails, a new file outside `allow`, or token
-usage up more than 20%. The baseline lives in `.agentgate/baseline.json` (gitignored); point
+usage up more than 20%. The baseline lives in `.agentdrift/baseline.json` (gitignored); point
 `--baseline-file` at a repo path when you want to commit it.
 
 ## Visual report
@@ -105,7 +105,7 @@ offline and drops straight into CI artifacts or a PR comment.
 node src/cli.ts run --adapter mock --baseline --html report.html
 ```
 
-![agentgate HTML report](docs/screenshot.png)
+![agentdrift HTML report](docs/screenshot.png)
 
 Per-task cards show the pass rule in one glance — token bar against the task's budget, failing check
 output, stray files as chips, and the baseline delta on the same card. Filter to failures with one
@@ -120,7 +120,7 @@ Requires **Node >= 22.18** — the CLI runs TypeScript directly, there is no bui
 
 ```bash
 git clone <this repo>
-cd agentgate
+cd agentdrift
 
 # no API key needed: the mock adapter replays canned edits
 node src/cli.ts run --adapter mock
@@ -149,7 +149,7 @@ export default {
     // an exit code alone is not always enough — assert the behaviour itself
     { name: 'café survives', run: `node -e "..."`, expectStdout: 'café-au-lait' },
   ],
-  budget: { maxTokens: 20000, maxMinutes: 2 },
+  budget: { maxTokens: 80000, maxMinutes: 2 },
 }
 ```
 
@@ -168,6 +168,13 @@ export default {
 | -------- | ----------- | ------------------------------------------------------------ |
 | `mock`   | stable      | offline, deterministic, drives CI and the demo                |
 | `claude` | experimental| shells out to the `claude` CLI and parses `stream-json` usage |
+
+The `claude` adapter is verified end-to-end, not just wired up: Claude Code **2.1.308**, `fix-sum`,
+2026-10-23 — checks green, 0 stray files, 50,023 tokens, $0.08, 4.7s.
+
+```bash
+node src/cli.ts run --adapter claude --only fix-sum    # needs the claude CLI, costs real tokens
+```
 
 Adding one is a single file: implement `{ id, detect, run({ cwd, prompt, timeoutMs }) }` in
 `src/adapters/`. PRs for `gemini` and `codex` are welcome.
@@ -203,7 +210,7 @@ The repository is already initialised here with a single `main` commit, so nothi
 
 **你测代码，但你没测 agent 对你的代码做了什么。**
 
-agentgate 把一次 agent 运行当成构建产物来验证：给它一个任务和一个 fixture 仓库，跑完对比
+agentdrift 把一次 agent 运行当成构建产物来验证：给它一个任务和一个 fixture 仓库，跑完对比
 「花了多少 token」和「改了哪些文件」。超出预算、动了白名单之外的文件、或者测试挂了，就直接变红。
 
 不需要 API key，`node src/cli.ts run --adapter mock` 就能看到完整流程（内置离线适配器）。

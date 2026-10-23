@@ -1,7 +1,8 @@
 node_modules/
-.agentgate/
+.agentdrift/
 dist/
 *.log
 .DS_Store
 report.html
 *.report.html
+report.htm

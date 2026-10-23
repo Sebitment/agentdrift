@@ -34,11 +34,11 @@ function parseArgs(argv: string[]): { flags: Flags; rest: string[] } {
   return { flags, rest }
 }
 
-const HELP = `agentgate — regression tests for coding agents
+const HELP = `agentdrift — regression tests for coding agents
 
 Usage
-  agentgate run [options]      run every task in the task folder
-  agentgate list [--tasks d]   list tasks without running them
+  agentdrift run [options]      run every task in the task folder
+  agentdrift list [--tasks d]   list tasks without running them
 
 Options
   --tasks <dir>      task folder (default: tasks)
@@ -49,7 +49,7 @@ Options
   --exit-zero        always exit 0, even when tasks fail
   --baseline         compare this run against the saved baseline
   --save-baseline    save this run as the new baseline
-  --baseline-file <file>  baseline path (default: .agentgate/baseline.json)
+  --baseline-file <file>  baseline path (default: .agentdrift/baseline.json)
   --fail-on-regression    exit 1 on pass->fail, token jump >20%, or new stray files
   --html <file>      write a self-contained HTML report
   -h, --help         show this help
@@ -100,7 +100,7 @@ async function main(): Promise<void> {
   }
 
   if (command !== 'run') {
-    console.error(`Unknown command "${command}". Try: agentgate --help`)
+    console.error(`Unknown command "${command}". Try: agentdrift --help`)
     process.exitCode = 2
     return
   }
@@ -122,7 +122,7 @@ async function main(): Promise<void> {
     return
   }
 
-  const workRoot = join(process.cwd(), '.agentgate', 'work')
+  const workRoot = join(process.cwd(), '.agentdrift', 'work')
   const baselinePath = String(flags['baseline-file'] ?? DEFAULT_BASELINE)
   const saveBaseline = Boolean(flags['save-baseline'])
   const compare = Boolean(flags.baseline)

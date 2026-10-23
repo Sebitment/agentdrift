@@ -15,8 +15,8 @@ export function initRepo(cwd: string): void {
   git(cwd, ['init', '-q'])
   git(cwd, ['add', '-A'])
   git(cwd, [
-    '-c', 'user.name=agentgate',
-    '-c', 'user.email=agentgate@local',
+    '-c', 'user.name=agentdrift',
+    '-c', 'user.email=agentdrift@local',
     'commit', '-q', '-m', 'baseline',
   ])
 }

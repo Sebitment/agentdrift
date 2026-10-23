@@ -22,7 +22,7 @@ test('renders the summary and one card per task', () => {
     results: [result('fix-sum', true, 100), result('vague-bug', false, 50)],
     generatedAt: new Date('2026-01-01T00:00:00Z'),
   })
-  assert.match(html, /agent<span>gate<\/span>/)
+  assert.match(html, /agent<span>drift<\/span>/)
   assert.match(html, /1<small>\/2<\/small>/)
   assert.match(html, /class="pill pass">pass</)
   assert.match(html, /class="pill fail">FAIL</)
