@@ -174,8 +174,8 @@ node src/cli.ts run --adapter claude --tasks tasks
 ### Use it in your own project
 
 ```bash
-npm i -D github:Sebitment/agentgate   # works today, no registry needed
-npx agentdrift list                    # walkthrough in docs/WORKFLOW.md
+npm i -D github:Sebitment/agentgate#v0.2.0   # pinned tag, ships compiled dist/, no registry needed
+npx agentdrift list                          # walkthrough in docs/WORKFLOW.md
 ```
 
 Once the package is on npm, the same thing is `npm i -D agentdrift`. Either way the CLI has zero
@@ -238,19 +238,23 @@ npm run typecheck
 
 ## Publishing
 
+The npm package is **not on the registry yet** — on purpose. Distribution today is the git tag and
+the GitHub release, which is everything a stranger needs. When there is a version worth announcing:
+
 ```bash
 npm test && npm run typecheck                 # CLI unit tests + types
-npm publish                                   # → agentdrift on npm (zero deps, ships src/ + tasks/)
-
-cd vscode-extension && npm test && npm run package
-# → agentdrift-vscode-<version>.vsix  (attach it to the GitHub release)
+npm publish --registry=https://registry.npmjs.org/
 ```
 
-Then create a release tagged `v0.2.0`, paste the body from
-[docs/release-notes-0.2.0.md](docs/release-notes-0.2.0.md), and upload the `.vsix` as an asset.
-For the Marketplace, `vsce publish` with a personal access token does the same thing with one command.
+Two gotchas that bit us: this machine's default registry is a mirror
+(`registry.npmmirror.com`), so `--registry` is not optional, and npm refuses to publish without 2FA
+unless you use a granular access token with **Bypass 2FA** enabled.
 
-Release history lives in [CHANGELOG.md](CHANGELOG.md).
+For the panel: `cd vscode-extension && npm test && npm run package`, then attach the `.vsix` to the
+release. `vsce publish` with a personal access token does the Marketplace in one command.
+
+Release history lives in [CHANGELOG.md](CHANGELOG.md); the release body comes from
+[docs/release-notes-0.2.0.md](docs/release-notes-0.2.0.md).
 
 ## Design rules
 
