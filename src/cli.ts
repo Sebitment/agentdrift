@@ -1,0 +1,140 @@
+#!/usr/bin/env node
+import { join } from 'node:path'
+import { loadTasks } from './task.ts'
+import { runTask } from './runner.ts'
+import { mockAdapter } from './adapters/mock.ts'
+import { claudeAdapter } from './adapters/claude.ts'
+import { printReport, toJson } from './report.ts'
+import { matchGlob } from './glob.ts'
+import type { Adapter, TaskResult } from './types.ts'
+
+type Flags = Record<string, string | boolean>
+
+function parseArgs(argv: string[]): { flags: Flags; rest: string[] } {
+  const flags: Flags = {}
+  const rest: string[] = []
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i]
+    if (!arg.startsWith('--')) {
+      rest.push(arg)
+      continue
+    }
+    const body = arg.slice(2)
+    const eq = body.indexOf('=')
+    if (eq >= 0) {
+      flags[body.slice(0, eq)] = body.slice(eq + 1)
+    } else if (argv[i + 1] && !argv[i + 1].startsWith('--')) {
+      flags[body] = argv[++i]
+    } else {
+      flags[body] = true
+    }
+  }
+  return { flags, rest }
+}
+
+const HELP = `agentgate — regression tests for coding agents
+
+Usage
+  agentgate run [options]      run every task in the task folder
+  agentgate list [--tasks d]   list tasks without running them
+
+Options
+  --tasks <dir>      task folder (default: tasks)
+  --only <ids>       comma separated task ids or globs, e.g. fix-sum,rename-*
+  --adapter <name>   claude | mock (default: claude)
+  --json             print machine readable results to stdout
+  --exit-zero        always exit 0, even when tasks fail
+  -h, --help         show this help
+
+Tasks live in <dir>/<id>/ and contain task.mjs, mock.json and repo/.
+`
+
+function makeAdapter(id: string): Adapter | null {
+  if (id === 'mock') return mockAdapter()
+  if (id === 'claude') return claudeAdapter()
+  return null
+}
+
+async function main(): Promise<void> {
+  const { flags, rest } = parseArgs(process.argv.slice(2))
+  const command = rest[0] ?? 'run'
+
+  if (flags.help || flags.h || command === 'help') {
+    process.stdout.write(HELP)
+    return
+  }
+
+  const tasksDir = String(flags.tasks ?? 'tasks')
+  const loaded = await loadTasks(tasksDir)
+
+  const only =
+    typeof flags.only === 'string'
+      ? flags.only.split(',').map((part) => part.trim()).filter(Boolean)
+      : null
+  const selected = only
+    ? loaded.filter((item) => only.some((pattern) => matchGlob(pattern, item.task.id)))
+    : loaded
+
+  if (selected.length === 0) {
+    const hint = only ? ` matching --only ${only.join(',')}` : ''
+    console.error(`No tasks found in "${tasksDir}"${hint}.`)
+    process.exitCode = 2
+    return
+  }
+
+  if (command === 'list') {
+    for (const { task } of selected) {
+      const checks = task.checks?.length ?? 0
+      const allow = task.allow?.join(', ') ?? '*'
+      console.log(`${task.id}  ·  ${checks} check(s)  ·  allow: ${allow}`)
+    }
+    return
+  }
+
+  if (command !== 'run') {
+    console.error(`Unknown command "${command}". Try: agentgate --help`)
+    process.exitCode = 2
+    return
+  }
+
+  const adapterId = String(flags.adapter ?? 'claude')
+  const adapter = makeAdapter(adapterId)
+  if (!adapter) {
+    console.error(`Unknown adapter "${adapterId}". Available: claude, mock`)
+    process.exitCode = 2
+    return
+  }
+
+  const health = await adapter.detect()
+  if (!health.ok) {
+    console.error(
+      `Adapter "${adapter.id}" is not available. Install the CLI or run with --adapter mock.`,
+    )
+    process.exitCode = 2
+    return
+  }
+
+  const workRoot = join(process.cwd(), '.agentgate', 'work')
+  const results: TaskResult[] = []
+
+  for (const item of selected) {
+    process.stderr.write(`▶ ${item.task.id} … `)
+    const result = await runTask(item, adapter, workRoot)
+    process.stderr.write(result.pass ? 'ok\n' : 'FAIL\n')
+    results.push(result)
+  }
+
+  if (flags.json) {
+    console.log(toJson(results))
+  } else {
+    printReport(results)
+  }
+
+  const failed = results.filter((result) => !result.pass).length
+  if (failed > 0 && !flags['exit-zero']) process.exitCode = 1
+}
+
+main().catch((err) => {
+  console.error(err instanceof Error ? err.stack : String(err))
+  process.exitCode = 1
+})

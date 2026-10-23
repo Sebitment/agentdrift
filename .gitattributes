@@ -1,0 +1,3 @@
+# Keep LF in the repository on every platform: CI runs on Linux and the
+# fixtures are executed by node, so CRLF only causes noise.
+* text=auto eol=lf

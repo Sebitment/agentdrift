@@ -1,0 +1,13 @@
+{
+  "edits": [
+    {
+      "file": "src/calc.js",
+      "content": "export function inc(n) {\n  return n + 1\n}\n"
+    },
+    {
+      "file": "package.json",
+      "content": "{\n  \"name\": \"fixture-scope-creep\",\n  \"private\": true,\n  \"type\": \"module\",\n  \"scripts\": { \"test\": \"node --test\" }\n}\n"
+    }
+  ],
+  "usage": { "inputTokens": 12400, "outputTokens": 1520 }
+}

@@ -1,0 +1,38 @@
+{
+  "name": "agentgate",
+  "version": "0.1.0",
+  "description": "Regression tests for coding agents: catch token bloat and runaway file edits before they ship.",
+  "type": "module",
+  "bin": {
+    "agentgate": "./src/cli.ts"
+  },
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "start": "node src/cli.ts",
+    "demo": "node src/cli.ts run --adapter mock",
+    "list": "node src/cli.ts list",
+    "test": "node --test \"test/*.test.mjs\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "author": "Sebitment",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Sebitment/agentgate.git"
+  },
+  "keywords": [
+    "ai-agent",
+    "agent-testing",
+    "regression-testing",
+    "claude-code",
+    "coding-agent",
+    "evaluation",
+    "token-budget"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "typescript": "^5.7.0"
+  }
+}

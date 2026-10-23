@@ -1,0 +1,26 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: unit tests
+        run: node --test "test/*.test.mjs"
+
+      - name: offline demo (all tasks pass)
+        run: node src/cli.ts run --adapter mock
+
+      - name: failure path still reports a stray file
+        run: |
+          node src/cli.ts run --adapter mock --tasks examples --json > result.json || true
+          node -e "const r=require('./result.json');if(!r[0].filesOutsideAllow.includes('package.json'))process.exit(1)"

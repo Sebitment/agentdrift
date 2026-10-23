@@ -1,0 +1,9 @@
+{
+  "edits": [
+    {
+      "file": "src/app.js",
+      "content": "export function sum(a, b) {\n  return a + b\n}\n"
+    }
+  ],
+  "usage": { "inputTokens": 8200, "outputTokens": 640 }
+}

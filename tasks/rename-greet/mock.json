@@ -1,0 +1,13 @@
+{
+  "edits": [
+    {
+      "file": "src/greet.js",
+      "content": "export function hello(name) {\n  return 'hi ' + name\n}\n"
+    },
+    {
+      "file": "src/main.js",
+      "content": "import { hello } from './greet.js'\n\nexport const out = hello('world')\n"
+    }
+  ],
+  "usage": { "inputTokens": 9100, "outputTokens": 780 }
+}
