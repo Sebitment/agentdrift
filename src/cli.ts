@@ -6,6 +6,7 @@ import { mockAdapter } from './adapters/mock.ts'
 import { claudeAdapter } from './adapters/claude.ts'
 import { printReport, renderDelta, toJson, printDelta } from './report.ts'
 import { DEFAULT_BASELINE, diffResults, readBaseline, regressions, writeBaseline } from './baseline.ts'
+import { writeHtml } from './html.ts'
 import { matchGlob } from './glob.ts'
 import type { Adapter, TaskResult } from './types.ts'
 
@@ -50,6 +51,7 @@ Options
   --save-baseline    save this run as the new baseline
   --baseline-file <file>  baseline path (default: .agentgate/baseline.json)
   --fail-on-regression    exit 1 on pass->fail, token jump >20%, or new stray files
+  --html <file>      write a self-contained HTML report
   -h, --help         show this help
 
 Tasks live in <dir>/<id>/ and contain task.mjs, mock.json and repo/.
@@ -144,23 +146,31 @@ async function main(): Promise<void> {
     results.push(result)
   }
 
+  const deltas = baseline ? diffResults(baseline, results) : []
+
   if (flags.json) {
     console.log(toJson(results))
     if (baseline) {
-      const text = renderDelta(baseline, diffResults(baseline, results))
+      const text = renderDelta(baseline, deltas)
       if (text) console.error(text)
     }
   } else {
     printReport(results)
-    if (baseline) printDelta(baseline, diffResults(baseline, results))
+    if (baseline) printDelta(baseline, deltas)
   }
 
   if (baseline && flags['fail-on-regression']) {
-    const worse = regressions(diffResults(baseline, results))
+    const worse = regressions(deltas)
     if (worse.length > 0) {
       console.error(`\n${worse.length} regression(s): ${worse.map((delta) => delta.id).join(', ')}`)
       process.exitCode = 1
     }
+  }
+
+  const htmlPath = typeof flags.html === 'string' ? flags.html : null
+  if (htmlPath) {
+    await writeHtml(htmlPath, { results, adapter: adapter.id, baseline, deltas })
+    console.error(`report written to ${htmlPath}`)
   }
 
   if (saveBaseline) {

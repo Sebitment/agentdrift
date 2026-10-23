@@ -131,6 +131,7 @@ export async function runTask(
     filesTouched,
     filesOutsideAllow,
     budgetExceeded,
+    budgetTokens: task.budget?.maxTokens,
     error: result.error,
   }
 }

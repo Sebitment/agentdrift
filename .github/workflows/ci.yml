@@ -25,6 +25,16 @@ jobs:
           node src/cli.ts run --adapter mock --quiet --save-baseline
           node src/cli.ts run --adapter mock --quiet --baseline --fail-on-regression
 
+      - name: html report
+        if: always()
+        run: node src/cli.ts run --adapter mock --tasks examples --baseline --html report.html --quiet || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: agentgate-report
+          path: report.html
+
       - name: failure paths still report the right reason
         run: |
           node src/cli.ts run --adapter mock --tasks examples --quiet --json > result.json || true

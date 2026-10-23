@@ -75,5 +75,7 @@ export type TaskResult = {
   filesTouched: string[]
   filesOutsideAllow: string[]
   budgetExceeded: string[]
+  /** Token budget copied from the task, so reports can draw usage bars. */
+  budgetTokens?: number
   error?: string
 }

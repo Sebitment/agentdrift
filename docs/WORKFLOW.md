@@ -108,6 +108,24 @@ delta 行：`<id>  <本轮状态>  tokens +5,160 (+58.4%)  stray +1`；跨轮变
 > 想在本机看一段「真的变差了」的 delta：`node scripts/make-drift.mjs`，然后跑
 > `node src/cli.ts run --adapter mock --tasks .agentgate/tmp-drift --baseline`。
 
+### 1.6 可视化报告（v0.2）
+
+`--html <file>` 在跑完之后额外写一个**单文件 HTML**：CSS/JS 全部内联，不引 CDN、不建服务、不装依赖，双击即开，也能直接当 CI artifact 传。
+
+| 元素 | 说明 |
+| --- | --- |
+| 顶部汇总 | 通过数、总 token、stray 总数、总耗时（一屏看完这次跑得好不好） |
+| 任务卡 | 左侧色条通过/失败；token 条按该任务的 `budget.maxTokens` 归一；失败 check 展开 stderr/stdout 细节；allow 外的文件以 chip 列出 |
+| 基线 delta | 与 `--baseline` 同源：`pass → FAIL`、token 涨幅（>20% 标红）、stray 增减 |
+| 过滤器 | All / Failed 一键切换，CI 里失败时截图发 PR 用 |
+
+设计约束：
+
+1. **纯函数**：`renderHtml(input) → string`，输入就是 `TaskResult[]` + 可选基线，不读磁盘、不起服务，便于单测与从任意 `--json` 结果重建。
+2. **零外部资源**：不引字体/图标/CDN，离线与内网可用。
+3. **转义所有数据**：任务 id、check 输出、文件名一律 `escapeHtml`，agent 产物不可信。
+4. **暗色/亮色**跟随系统 `prefers-color-scheme`，不需要主题开关。
+
 ## 2. 代码框架
 
 ### 2.1 分层与依赖方向
@@ -135,7 +153,8 @@ cli ──▶ runner ──▶ adapters
 | `src/baseline.ts` | 基线读写与逐任务 diff | 跑任务、打印 |
 | `src/adapters/*` | 驱动外部 agent，返回 `RunResult` | 改 fixture、跑 check、做判定 |
 | `src/runner.ts` | 编排一次运行并判定 | 打印、格式化 |
-| `src/report.ts` | 渲染表格 / JSON | 读磁盘、做判定 |
+| `src/report.ts` | 渲染终端表格 / JSON | 读磁盘、做判定 |
+| `src/html.ts` | 渲染单文件 HTML 报告 | 读磁盘、起服务、引外部资源 |
 | `src/cli.ts` | 参数解析与流程调度 | 藏业务规则 |
 
 ### 2.3 数据契约

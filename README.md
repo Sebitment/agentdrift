@@ -96,6 +96,24 @@ A **regression** is any of: a task that used to pass now fails, a new file outsi
 usage up more than 20%. The baseline lives in `.agentgate/baseline.json` (gitignored); point
 `--baseline-file` at a repo path when you want to commit it.
 
+## Visual report
+
+Add `--html` and you get one self-contained file: inline CSS, no assets, no CDN, no server. It opens
+offline and drops straight into CI artifacts or a PR comment.
+
+```bash
+node src/cli.ts run --adapter mock --baseline --html report.html
+```
+
+![agentgate HTML report](docs/screenshot.png)
+
+Per-task cards show the pass rule in one glance — token bar against the task's budget, failing check
+output, stray files as chips, and the baseline delta on the same card. Filter to failures with one
+click. Dark and light themes follow the OS setting.
+
+The file is a pure function of the results (`renderHtml` in `src/html.ts`), so you can rebuild it
+from any `--json` output without re-running the agent.
+
 ## Quickstart
 
 Requires **Node >= 22.18** — the CLI runs TypeScript directly, there is no build step.
@@ -177,7 +195,7 @@ The repository is already initialised here with a single `main` commit, so nothi
 
 ## Roadmap
 
-- `v0.2` ✅ baseline comparison (`--baseline`); next: cost per task, single-file HTML report
+- `v0.2` ✅ baseline comparison (`--baseline`), self-contained HTML report (`--html`); next: cost per task, live TUI
 - `v0.3` `gemini` / `codex` adapters
 - `v0.4` VS Code panel that renders the same JSON
 
@@ -193,6 +211,9 @@ agentgate 把一次 agent 运行当成构建产物来验证：给它一个任务
 
 支持基线对比：`--save-baseline` 记录一次结果，`--baseline` 下次跑时逐任务对比，
 `--fail-on-regression` 让 CI 在「曾经通过的任务挂了 / token 暴涨 20% / 多改了文件」时失败。
+
+也支持可视化：加 `--html report.html` 生成一个不依赖网络和服务的单文件报告，任务卡里能直接看到
+token 条、失败原因、越界文件和基线变化。
 
 ## License
 
