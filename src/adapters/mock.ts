@@ -22,11 +22,21 @@ export function mockAdapter(): Adapter {
     },
     async run({ cwd, taskDir }): Promise<RunResult> {
       const started = Date.now()
-      let spec: MockSpec = {}
+      const mockPath = join(taskDir, 'mock.json')
+
+      let raw: string
       try {
-        spec = JSON.parse(await readFile(join(taskDir, 'mock.json'), 'utf8')) as MockSpec
+        raw = await readFile(mockPath, 'utf8')
       } catch {
-        spec = {}
+        throw new Error(`mock adapter: missing ${mockPath}`)
+      }
+
+      let spec: MockSpec
+      try {
+        spec = JSON.parse(raw.replace(/^\uFEFF/, '')) as MockSpec
+      } catch (err) {
+        const reason = err instanceof Error ? err.message : String(err)
+        throw new Error(`mock adapter: invalid JSON in ${mockPath} (${reason})`)
       }
 
       for (const edit of spec.edits ?? []) {

@@ -1,0 +1,6 @@
+{
+  "name": "fixture-vague-bug",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node --test" }
+}

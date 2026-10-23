@@ -4,7 +4,8 @@ import { loadTasks } from './task.ts'
 import { runTask } from './runner.ts'
 import { mockAdapter } from './adapters/mock.ts'
 import { claudeAdapter } from './adapters/claude.ts'
-import { printReport, toJson } from './report.ts'
+import { printReport, renderDelta, toJson, printDelta } from './report.ts'
+import { DEFAULT_BASELINE, diffResults, readBaseline, regressions, writeBaseline } from './baseline.ts'
 import { matchGlob } from './glob.ts'
 import type { Adapter, TaskResult } from './types.ts'
 
@@ -43,7 +44,12 @@ Options
   --only <ids>       comma separated task ids or globs, e.g. fix-sum,rename-*
   --adapter <name>   claude | mock (default: claude)
   --json             print machine readable results to stdout
+  --quiet            no per-task progress on stderr
   --exit-zero        always exit 0, even when tasks fail
+  --baseline         compare this run against the saved baseline
+  --save-baseline    save this run as the new baseline
+  --baseline-file <file>  baseline path (default: .agentgate/baseline.json)
+  --fail-on-regression    exit 1 on pass->fail, token jump >20%, or new stray files
   -h, --help         show this help
 
 Tasks live in <dir>/<id>/ and contain task.mjs, mock.json and repo/.
@@ -115,19 +121,51 @@ async function main(): Promise<void> {
   }
 
   const workRoot = join(process.cwd(), '.agentgate', 'work')
+  const baselinePath = String(flags['baseline-file'] ?? DEFAULT_BASELINE)
+  const saveBaseline = Boolean(flags['save-baseline'])
+  const compare = Boolean(flags.baseline)
+
+  let baseline = null
+  if (compare) {
+    baseline = await readBaseline(baselinePath)
+    if (!baseline) {
+      console.error(`No baseline at ${baselinePath}. Run once with --save-baseline first.`)
+      process.exitCode = 2
+      return
+    }
+  }
+
   const results: TaskResult[] = []
 
   for (const item of selected) {
-    process.stderr.write(`▶ ${item.task.id} … `)
+    if (!flags.quiet) process.stderr.write(`▶ ${item.task.id} … `)
     const result = await runTask(item, adapter, workRoot)
-    process.stderr.write(result.pass ? 'ok\n' : 'FAIL\n')
+    if (!flags.quiet) process.stderr.write(result.pass ? 'ok\n' : 'FAIL\n')
     results.push(result)
   }
 
   if (flags.json) {
     console.log(toJson(results))
+    if (baseline) {
+      const text = renderDelta(baseline, diffResults(baseline, results))
+      if (text) console.error(text)
+    }
   } else {
     printReport(results)
+    if (baseline) printDelta(baseline, diffResults(baseline, results))
+  }
+
+  if (baseline && flags['fail-on-regression']) {
+    const worse = regressions(diffResults(baseline, results))
+    if (worse.length > 0) {
+      console.error(`\n${worse.length} regression(s): ${worse.map((delta) => delta.id).join(', ')}`)
+      process.exitCode = 1
+    }
+  }
+
+  if (saveBaseline) {
+    await writeBaseline(baselinePath, adapter.id, results)
+    console.error(`baseline saved to ${baselinePath}`)
   }
 
   const failed = results.filter((result) => !result.pass).length

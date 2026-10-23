@@ -14,23 +14,28 @@ function runShell(
   command: string,
   cwd: string,
   timeoutMs: number,
-): Promise<{ code: number; output: string }> {
+): Promise<{ code: number; output: string; stdout: string }> {
   return new Promise((resolve) => {
     const child = spawn(command, { cwd, shell: true, stdio: ['ignore', 'pipe', 'pipe'] })
     let output = ''
+    let stdout = ''
     let settled = false
     const finish = (code: number) => {
       if (settled) return
       settled = true
       clearTimeout(timer)
-      resolve({ code, output })
+      resolve({ code, output, stdout })
     }
     const timer = setTimeout(() => {
       child.kill('SIGKILL')
       finish(124)
     }, timeoutMs)
 
-    child.stdout?.on('data', (chunk) => (output += String(chunk)))
+    child.stdout?.on('data', (chunk) => {
+      const text = String(chunk)
+      output += text
+      stdout += text
+    })
     child.stderr?.on('data', (chunk) => (output += String(chunk)))
     child.on('error', (err) => {
       output += String(err)
@@ -45,12 +50,17 @@ async function runChecks(checks: Check[], cwd: string): Promise<CheckResult[]> {
   for (const check of checks) {
     const name = check.name ?? check.run
     const expected = check.expectExit ?? 0
-    const { code, output } = await runShell(check.run, cwd, check.timeoutMs ?? 120_000)
-    const ok = code === expected
+    const { code, output, stdout } = await runShell(check.run, cwd, check.timeoutMs ?? 120_000)
+    const exitOk = code === expected
+    const stdoutOk = check.expectStdout === undefined || stdout.trim() === check.expectStdout.trim()
+    const ok = exitOk && stdoutOk
+    const reason = exitOk
+      ? `stdout ${JSON.stringify(tail(stdout, 200))}, expected ${JSON.stringify(check.expectStdout)}`
+      : `exit ${code}, expected ${expected}`
     results.push({
       name,
       ok,
-      detail: ok ? undefined : `exit ${code}, expected ${expected}\n${tail(output)}`,
+      detail: ok ? undefined : `${reason}\n${tail(output)}`,
     })
   }
   return results

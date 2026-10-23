@@ -1,4 +1,5 @@
 import type { TaskResult } from './types.ts'
+import type { Baseline, TaskDelta } from './baseline.ts'
 
 const useColor = !process.env.NO_COLOR && process.env.TERM !== 'dumb'
 
@@ -128,4 +129,53 @@ export function printReport(results: TaskResult[]): string {
 
 export function toJson(results: TaskResult[]): string {
   return JSON.stringify(results, null, 2)
+}
+
+function signedInt(value: number): string {
+  if (value === 0) return '0'
+  return `${value > 0 ? '+' : '-'}${formatInt(Math.abs(value))}`
+}
+
+/** One line per task, showing what got better and what got worse. */
+export function renderDelta(baseline: Baseline, deltas: TaskDelta[]): string {
+  if (deltas.length === 0) return ''
+
+  const stamp = baseline.recordedAt.replace('T', ' ').replace(/\..*$/, '').replace('Z', 'UTC')
+  const width = Math.max(...deltas.map((delta) => displayWidth(delta.id)))
+  const lines = [paint(1, `vs baseline ${stamp} (${baseline.adapter})`)]
+
+  for (const delta of deltas) {
+    const parts = [delta.id + ' '.repeat(Math.max(0, width - displayWidth(delta.id)))]
+
+    if (delta.status === 'broken') parts.push(paint(31, 'pass -> FAIL'))
+    else if (delta.status === 'fixed') parts.push(paint(32, 'FAIL -> pass'))
+    else if (delta.status === 'new') parts.push(paint(36, 'new task'))
+    else if (delta.status === 'gone') parts.push(paint(33, 'removed'))
+    else parts.push(paint(delta.pass ? 32 : 31, delta.pass ? 'pass' : 'FAIL'))
+
+    if (delta.status !== 'gone') {
+      const pct =
+        delta.tokenPct === null
+          ? ''
+          : ` (${delta.tokenPct >= 0 ? '+' : ''}${(delta.tokenPct * 100).toFixed(1)}%)`
+      const text = `tokens ${signedInt(delta.tokenDelta)}${pct}`
+      const color = delta.tokenDelta > 0 && (delta.tokenPct ?? 0) > 0.2 ? 31 : delta.tokenDelta > 0 ? 33 : 32
+      parts.push(delta.tokenDelta === 0 ? paint(90, 'tokens 0') : paint(color, text))
+      if (delta.strayDelta !== 0) {
+        parts.push(
+          paint(delta.strayDelta > 0 ? 31 : 32, `stray ${delta.strayDelta > 0 ? '+' : ''}${delta.strayDelta}`),
+        )
+      }
+    }
+
+    lines.push(`  ${parts.join('  ')}`)
+  }
+
+  return lines.join('\n')
+}
+
+export function printDelta(baseline: Baseline, deltas: TaskDelta[]): string {
+  const output = renderDelta(baseline, deltas)
+  if (output) console.log(`\n${output}`)
+  return output
 }

@@ -5,6 +5,8 @@ export type Check = {
   run: string
   /** Expected exit code, defaults to 0. */
   expectExit?: number
+  /** When set, trimmed stdout must equal this string exactly. */
+  expectStdout?: string
   timeoutMs?: number
 }
 

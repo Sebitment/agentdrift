@@ -55,7 +55,7 @@ pass = !error
 | 条件 | 来源 | 违约时的输出 |
 | --- | --- | --- |
 | `error` | 适配器抛异常 / 超时被杀 | `error: …` |
-| `checks[].ok` | `run` 的退出码 === `expectExit`（默认 0） | `check failed: <name>` |
+| `checks[].ok` | `run` 退出码 === `expectExit`（默认 0），且（若设置了）stdout 去首尾空白 === `expectStdout` | `check failed: <name>` + 实际退出码或 `stdout "…", expected "…"` |
 | `filesOutsideAllow` | `git status --porcelain` 的路径不在 `allow` 里（默认 `**`） | `files outside allow: …` |
 | `budgetExceeded` | `in+out > maxTokens` 或 `duration > maxMinutes` | `budget: …` |
 
@@ -67,6 +67,7 @@ pass = !error
 | --- | --- | --- |
 | 0 | 全部 pass | `src/cli.ts` |
 | 1 | 至少一个任务 FAIL（`--exit-zero` 可压回 0） | `src/cli.ts` |
+| 1 | `--baseline --fail-on-regression` 检测到退化（见 1.5） | `src/cli.ts` |
 | 2 | 用法/环境错误：无任务、未知适配器、适配器不可用 | `src/cli.ts` |
 | 1 | 未捕获异常（带 stack） | `main().catch` |
 
@@ -81,7 +82,31 @@ tasks/<id>/         正式任务，提交进仓库，必须全绿
   repo/             夹具仓库，agent 从这里开始改
 examples/<id>/      故意失败的任务，CI 用来验证“失败路径还能正确报错”
 .agentgate/work/    运行时产物，已 gitignore，可随时删
+.agentgate/baseline.json   上次运行的快照，`--save-baseline` 写入，同样 gitignore
 ```
+
+### 1.5 基线对比（v0.2）
+
+一次运行只有和上一次比较，才能回答「换了模型/升级了提示词之后，是变好还是变坏」。
+
+| 命令 | 作用 |
+| --- | --- |
+| `--save-baseline` | 把本次结果写进 `.agentgate/baseline.json`（含 adapter 名与时间戳） |
+| `--baseline` | 跑完后与基线逐任务对比，额外打印一段 delta |
+| `--baseline-file <path>` | 换一个基线文件（想把基线提交进仓库时用） |
+| `--fail-on-regression` | 出现退化时退出码 1 |
+
+退化（三者任一）：
+
+1. `pass → FAIL`
+2. 新出现 stray 文件
+3. token 相对增长 **超过 20%**
+
+delta 行：`<id>  <本轮状态>  tokens +5,160 (+58.4%)  stray +1`；跨轮变化用箭头表示（`pass -> FAIL`）。基线文件不存在时 exit 2，并提示先跑一次 `--save-baseline`。
+
+> 基线里的 token 和耗时是机器相关的，默认不提交；要多机对比就把 `--baseline-file` 指向仓库内固定路径。
+> 想在本机看一段「真的变差了」的 delta：`node scripts/make-drift.mjs`，然后跑
+> `node src/cli.ts run --adapter mock --tasks .agentgate/tmp-drift --baseline`。
 
 ## 2. 代码框架
 
@@ -107,6 +132,7 @@ cli ──▶ runner ──▶ adapters
 | `src/glob.ts` | `*` `**` `?` 匹配 | 读文件系统 |
 | `src/git.ts` | git 封装（init / status） | 做业务判断 |
 | `src/task.ts` | 从磁盘装载任务定义 | 执行任务 |
+| `src/baseline.ts` | 基线读写与逐任务 diff | 跑任务、打印 |
 | `src/adapters/*` | 驱动外部 agent，返回 `RunResult` | 改 fixture、跑 check、做判定 |
 | `src/runner.ts` | 编排一次运行并判定 | 打印、格式化 |
 | `src/report.ts` | 渲染表格 / JSON | 读磁盘、做判定 |
@@ -117,13 +143,17 @@ cli ──▶ runner ──▶ adapters
 ```ts
 // 任务（用户写的，存在 task.mjs 里）
 Task = { id, prompt, allow?: string[], checks?: Check[], budget?: Budget }
-Check = { name?, run: string, expectExit?: number, timeoutMs?: number }
+Check = { name?, run: string, expectExit?: number, expectStdout?: string, timeoutMs?: number }
 Budget = { maxTokens?: number, maxMinutes?: number }
 
 // 适配器边界
 RunContext = { cwd, taskDir, prompt, timeoutMs }
 RunResult  = { exitCode, usage, transcript, durationMs, error? }
 Usage      = { inputTokens, outputTokens, usd?, estimated? }
+
+// 基线（--save-baseline 写盘，--baseline 读回）
+Baseline   = { recordedAt, adapter, results: TaskResult[] }
+TaskDelta  = { id, status: same|fixed|broken|new|gone, pass, tokenDelta, tokenPct, timeDelta, strayDelta }
 
 // 运行结果（--json 的输出，也是未来 VS Code 面板的接口）
 TaskResult = {
@@ -204,8 +234,7 @@ TaskResult = {
 | --- | --- | --- |
 | LLM 判分 | 不可复现，违反 I1 | 永远不做，最多做“建议” |
 | 内置任务集 | 任务属于用户自己的仓库 | v0.3 提供模板生成器 |
-| 并发跑多任务 | 先保证可复现和输出可读 | v0.2 |
-| baseline 对比 | 需要历史数据格式 | v0.2 |
+| 并发跑多任务 | 先保证可复现和输出可读 | v0.2 后半 |
 | VS Code 面板 | 只是 `--json` 的渲染器 | v0.4 |
 
 ## 5. 两周里程碑
@@ -213,6 +242,6 @@ TaskResult = {
 | 时间 | 交付 | 验收 |
 | --- | --- | --- |
 | W1（已完成） | CLI + mock/claude 适配器 + 2 个示例任务 + CI | `node src/cli.ts run --adapter mock` 全绿 |
-| W2 | `--baseline` 对比、`--json` 稳定、5 个真实任务、README 数据 | PR 里有真实 agent 的前后对比 |
+| W2 | `--baseline` 对比（已完成）、`--json` 稳定、5 个真实任务、README 数据 | PR 里有真实 agent 的前后对比 |
 | W3 | `gemini` 适配器、任务模板生成器 | 两个适配器跑同一批任务 |
 | W4+ | VS Code 面板 | 面板只读 `--json`，不改判定逻辑 |

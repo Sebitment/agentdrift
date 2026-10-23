@@ -20,7 +20,20 @@ jobs:
       - name: offline demo (all tasks pass)
         run: node src/cli.ts run --adapter mock
 
-      - name: failure path still reports a stray file
+      - name: baseline gate (unchanged run must not regress)
         run: |
-          node src/cli.ts run --adapter mock --tasks examples --json > result.json || true
-          node -e "const r=require('./result.json');if(!r[0].filesOutsideAllow.includes('package.json'))process.exit(1)"
+          node src/cli.ts run --adapter mock --quiet --save-baseline
+          node src/cli.ts run --adapter mock --quiet --baseline --fail-on-regression
+
+      - name: failure paths still report the right reason
+        run: |
+          node src/cli.ts run --adapter mock --tasks examples --quiet --json > result.json || true
+          node -e "
+            const r = require('./result.json');
+            const stray = r.find((t) => t.id === 'scope-creep');
+            const broken = r.find((t) => t.id === 'green-but-broken');
+            if (!stray || stray.pass) throw new Error('scope-creep should fail on a stray file');
+            if (!stray.filesOutsideAllow.includes('package.json')) throw new Error('stray file not reported');
+            if (!broken || broken.pass) throw new Error('green-but-broken should fail a check');
+            if (broken.filesOutsideAllow.length !== 0) throw new Error('green-but-broken should not be a stray');
+          "
