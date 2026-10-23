@@ -119,7 +119,7 @@ from any `--json` output without re-running the agent.
 Requires **Node >= 22.18** — the CLI runs TypeScript directly, there is no build step.
 
 ```bash
-git clone <this repo>
+git clone <this repo> agentdrift
 cd agentdrift
 
 # no API key needed: the mock adapter replays canned edits
