@@ -119,21 +119,35 @@ from any `--json` output without re-running the agent.
 The CLI stays the source of truth; the panel is a thin view over `.agentdrift/last-run.json`, which
 every `agentdrift run` writes.
 
+![agentdrift in the VS Code sidebar](docs/screenshot-vscode.png)
+
 ```bash
-cd vscode-extension
-npm install
-npm run build          # then press F5 with this folder open ("Run Extension")
+# install the packaged extension (works in any VS Code 1.85+)
+code --install-extension releases/agentdrift-vscode-0.2.0.vsix
+# ...or from source
+cd vscode-extension && npm install && npm run build   # then F5 with this folder open
 ```
 
-![agentdrift in the VS Code sidebar](docs/screenshot-vscode.png)
+It works in **any** folder, not just this repo. The panel resolves the CLI in this order: the
+`agentdrift.cliCommand` setting → `node_modules/.bin/agentdrift` → this checkout's `src/cli.ts` →
+`PATH` → `npx agentdrift`.
+
+| setting | default | what it does |
+| --- | --- | --- |
+| `agentdrift.adapter` | `mock` | `mock` replays fixtures offline; `claude` runs the real CLI |
+| `agentdrift.tasks` | `tasks` | task directory, relative to the workspace root |
+| `agentdrift.baseline` | `false` | adds `--baseline` to every run |
+| `agentdrift.cliCommand` | `""` | explicit command, e.g. `node "C:/tools/agentdrift/src/cli.ts"` |
 
 - failed tasks first, each with the reason it went red (stray / over budget / failed check)
 - status bar shows `n/m` and turns orange when anything fails
-- ▶ in the view title runs `node src/cli.ts run --adapter mock`; a task click opens the HTML report
-  in a webview
+- ▶ runs the selected adapter, ⚙ runs one task, 📌 records a baseline
+- a task click opens the HTML report in a webview; output streams to the `agentdrift` Output panel
 
 Because it only reads the last run, a CI run, a terminal run and the panel can never disagree.
-The extension lives in `vscode-extension/` and is not on the marketplace yet — F5 is enough to use it.
+Being a pure reader also makes it safe in untrusted workspaces — it declares
+`untrustedWorkspaces.supported`, so it is not disabled by Restricted Mode.
+
 
 ## Quickstart
 
@@ -155,6 +169,17 @@ With Claude Code installed and authenticated:
 ```bash
 node src/cli.ts run --adapter claude --tasks tasks
 ```
+
+### Use it in your own project
+
+```bash
+npm i -D agentdrift          # zero runtime dependencies, runs on Node 22.18+
+mkdir -p tasks/hello/repo
+npx agentdrift list          # walkthrough in docs/WORKFLOW.md
+```
+
+Point `--tasks` at a directory inside your repo; the agent gets a copy of `tasks/hello/repo/`, never
+your working tree.
 
 ## Task format
 
@@ -223,9 +248,9 @@ The repository is already initialised here with a single `main` commit, so nothi
 
 ## Roadmap
 
-- `v0.2` ✅ baseline comparison (`--baseline`), self-contained HTML report (`--html`); next: cost per task, live TUI
-- `v0.3` `gemini` / `codex` adapters
-- `v0.4` VS Code panel that renders the same JSON
+- `v0.2` ✅ baseline comparison (`--baseline`), self-contained HTML report (`--html`)
+- `v0.4` ✅ VS Code panel: `n/m` in the status bar, per-task reasons, report webview
+- `v0.5` `gemini` / `codex` adapters, marketplace release, cost per task
 
 ## 中文
 

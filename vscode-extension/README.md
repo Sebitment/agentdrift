@@ -6,25 +6,50 @@ went red.
 
 ![sidebar](https://raw.githubusercontent.com/Sebitment/agentgate/main/docs/screenshot-vscode.png)
 
-## Run it
+## Install
 
 ```bash
-npm install
-npm run build
+code --install-extension releases/agentdrift-vscode-0.2.0.vsix
 ```
 
-Then open this repository in VS Code and press **F5** (Run Extension). A second VS Code window opens
-with the extension loaded; the agentdrift icon sits in the activity bar.
+Or *Extensions → `…` → Install from VSIX…*. The panel works in any folder — install the CLI in that
+project (`npm i -D agentdrift`) and it is found automatically.
+
+From source:
+
+```bash
+npm install && npm run build
+```
+
+Then open this folder in VS Code and press **F5** (Run Extension); a second window opens with the
+extension loaded.
 
 ## Commands
 
 | Command | What it does |
 | --- | --- |
-| `agentdrift: Run tasks` | runs `node src/cli.ts run --adapter mock` in the workspace root |
+| `agentdrift: Run tasks` | runs the selected adapter over the task directory |
+| `agentdrift: Run this task` | same, `--only <id>` (inline button on a task) |
+| `agentdrift: Save baseline` | records `.agentdrift/baseline.json` (`--save-baseline`) |
 | `agentdrift: Open HTML report` | opens `.agentdrift/report.html` in a webview |
-| `agentdrift: Refresh` | re-reads `last-run.json` (a file watcher also does this automatically) |
+| `agentdrift: Refresh` | re-reads `last-run.json` (a file watcher also does this) |
 
 The status bar shows `n/m` passed and turns orange when anything failed.
+
+## Settings
+
+| Setting | Default | What it does |
+| --- | --- | --- |
+| `agentdrift.adapter` | `mock` | `mock` replays fixtures offline; `claude` runs the real Claude Code CLI |
+| `agentdrift.tasks` | `tasks` | task directory, relative to the workspace root (or absolute) |
+| `agentdrift.baseline` | `false` | adds `--baseline` to every run |
+| `agentdrift.cliCommand` | `""` | explicit command, e.g. `node "C:/tools/agentdrift/src/cli.ts"` |
+
+## How the CLI is found
+
+`agentdrift.cliCommand` → `node_modules/.bin/agentdrift` → this checkout's `src/cli.ts` (only when
+`package.json` says `name: "agentdrift"`) → `PATH` → `npx --yes agentdrift`. The resolution is a pure
+function in `src/locate.ts` and is unit tested per platform sentinel (Windows `.cmd` shims vs POSIX).
 
 ## Why it is so small
 
@@ -41,5 +66,5 @@ has a `main` entry point, which is the number one reason a freshly installed pan
 ## Test
 
 ```bash
-npm test    # builds, then runs the model unit tests in plain Node
+npm test    # builds, then runs the model + locate unit tests in plain Node
 ```

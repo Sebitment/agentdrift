@@ -3,9 +3,17 @@ import { spawn } from 'node:child_process'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { groups, parseLastRun, totals, descriptionOf, tooltipOf, type LastRun, type TaskResult } from './model'
+import { describeSource, resolveCli } from './locate'
 
 const LAST_RUN = join('.agentdrift', 'last-run.json')
 const REPORT = join('.agentdrift', 'report.html')
+
+interface Settings {
+  adapter: string
+  tasks: string
+  baseline: boolean
+  cliCommand: string
+}
 
 type Node =
   | { kind: 'group'; key: 'failed' | 'passed'; label: string; tasks: TaskResult[] }
@@ -59,6 +67,46 @@ function workspaceRoot(): string | undefined {
   return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
 }
 
+function settings(): Settings {
+  const cfg = vscode.workspace.getConfiguration('agentdrift')
+  return {
+    adapter: cfg.get<string>('adapter', 'mock'),
+    tasks: cfg.get<string>('tasks', 'tasks'),
+    baseline: cfg.get<boolean>('baseline', false),
+    cliCommand: cfg.get<string>('cliCommand', ''),
+  }
+}
+
+function quoteArgument(value: string): string {
+  return /\s/.test(value) ? `"${value}"` : value
+}
+
+/** Builds the shell command for one run. `html` is relative to the workspace root. */
+export function buildCommand(command: string, run: Settings, only?: string, saveBaseline = false): string {
+  const args = ['run', '--adapter', run.adapter, '--tasks', run.tasks, '--html', quoteArgument(REPORT)]
+  if (saveBaseline) args.push('--save-baseline')
+  else if (run.baseline) args.push('--baseline')
+  if (only) args.push('--only', quoteArgument(only))
+  return `${command} ${args.join(' ')}`
+}
+
+function runShell(command: string, cwd: string, token?: vscode.CancellationToken): Promise<number | null> {
+  return new Promise((resolve) => {
+    const child = spawn(command, { cwd, shell: true })
+    child.stdout.on('data', (chunk: Buffer) => channel.append(chunk.toString()))
+    child.stderr.on('data', (chunk: Buffer) => channel.append(chunk.toString()))
+    const cancel = token?.onCancellationRequested(() => child.kill())
+    const done = (code: number | null, failure?: Error) => {
+      cancel?.dispose()
+      if (failure) channel.appendLine(`[spawn failed] ${failure.message}`)
+      channel.appendLine(`[exit ${code ?? 'null'}]`)
+      resolve(code)
+    }
+    child.on('error', (error) => done(null, error))
+    child.on('close', (code) => done(code))
+  })
+}
+
 let current: LastRun | undefined
 let tree: TaskTree
 let status: vscode.StatusBarItem
@@ -95,29 +143,48 @@ function updateStatus(): void {
   status.show()
 }
 
-async function runTasks(): Promise<void> {
+async function runTasks(options: { only?: string; saveBaseline?: boolean } = {}): Promise<void> {
   const root = workspaceRoot()
   if (!root) {
     void vscode.window.showErrorMessage('agentdrift: open a folder first')
     return
   }
+  const run = settings()
+  const cli = resolveCli(root, run.cliCommand)
+  if (cli.source === 'npx') {
+    const install = await vscode.window.showWarningMessage(
+      'agentdrift: no local install found, falling back to npx. Install it for faster and offline runs.',
+      'npm i -D agentdrift',
+      'Continue',
+    )
+    if (install === 'npm i -D agentdrift') {
+      channel.show(true)
+      channel.appendLine(`$ npm i -D agentdrift`)
+      await runShell(`npm i -D agentdrift`, root)
+      await loadRun()
+      tree.refresh()
+      updateStatus()
+      return
+    }
+    if (!install) return
+  }
+
+  const command = buildCommand(cli.command, run, options.only, options.saveBaseline)
   channel.show(true)
-  channel.appendLine('$ node src/cli.ts run --adapter mock')
+  channel.appendLine(`$ ${command}`)
+  channel.appendLine(`  (cli: ${cli.command} via ${describeSource(cli)})`)
   status.text = '$(sync~spin) agentdrift running'
   status.show()
 
-  await new Promise<void>((resolve) => {
-    const child = spawn('node "src/cli.ts" run --adapter mock --html ".agentdrift/report.html" 2>&1', {
-      cwd: root,
-      shell: true,
-    })
-    child.stdout.on('data', (chunk: Buffer) => channel.append(chunk.toString()))
-    child.stderr.on('data', (chunk: Buffer) => channel.append(chunk.toString()))
-    child.on('close', (code) => {
-      channel.appendLine(`[exit ${code ?? 'null'}]`)
-      resolve()
-    })
-  })
+  await vscode.window.withProgress(
+    { location: vscode.ProgressLocation.Notification, title: 'agentdrift', cancellable: true },
+    async (_progress, token) => {
+      const code = await runShell(command, root, token)
+      if (code !== null && code > 1) {
+        void vscode.window.showErrorMessage(`agentdrift: run failed (exit ${code}) — see the Output panel`)
+      }
+    },
+  )
 
   await loadRun()
   tree.refresh()
@@ -169,6 +236,11 @@ export function activate(context: vscode.ExtensionContext): void {
     status,
     vscode.window.registerTreeDataProvider('agentdrift.tasks', tree),
     vscode.commands.registerCommand('agentdrift.run', () => void runTasks()),
+    vscode.commands.registerCommand('agentdrift.runTask', (node?: { kind?: string; result?: TaskResult } | string) => {
+      const id = typeof node === 'string' ? node : node?.result?.id
+      void runTasks({ only: id })
+    }),
+    vscode.commands.registerCommand('agentdrift.saveBaseline', () => void runTasks({ saveBaseline: true })),
     vscode.commands.registerCommand('agentdrift.refresh', async () => {
       await loadRun()
       tree.refresh()
@@ -176,6 +248,12 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
     vscode.commands.registerCommand('agentdrift.openReport', () => void openReport()),
     vscode.workspace.onDidChangeWorkspaceFolders(async () => {
+      await loadRun()
+      tree.refresh()
+      updateStatus()
+    }),
+    vscode.workspace.onDidChangeConfiguration(async (event) => {
+      if (!event.affectsConfiguration('agentdrift')) return
       await loadRun()
       tree.refresh()
       updateStatus()

@@ -126,6 +126,32 @@ delta 行：`<id>  <本轮状态>  tokens +5,160 (+58.4%)  stray +1`；跨轮变
 3. **转义所有数据**：任务 id、check 输出、文件名一律 `escapeHtml`，agent 产物不可信。
 4. **暗色/亮色**跟随系统 `prefers-color-scheme`，不需要主题开关。
 
+### 1.7 VS Code 面板（v0.4）
+
+面板**不跑任务、不做判定**，只是 `last-run.json` 的只读视图：
+
+```text
+agentdrift run ──写──▶ .agentdrift/last-run.json ──读──▶ 侧边栏（分组 / 状态栏 n/m）
+                └─写──▶ .agentdrift/report.html   ──读──▶ webview（同一份 HTML）
+```
+
+**CLI 定位顺序**（`vscode-extension/src/locate.ts`，纯函数、可单测）：
+
+| 顺序 | 命中条件 | 说明 |
+| --- | --- | --- |
+| 1 | `agentdrift.cliCommand` 非空 | 用户显式指定，原样使用 |
+| 2 | `<root>/node_modules/.bin/agentdrift[.cmd]` | `npm i -D agentdrift` 后的项目 |
+| 3 | `<root>/src/cli.ts` 且 `package.json` 的 `name === "agentdrift"` | 本仓库开发态（用 package.json 防误判） |
+| 4 | `PATH` 上的 `agentdrift` | 全局安装 |
+| 5 | `npx --yes agentdrift` | 兜底；会先弹提示让用户选择安装 |
+
+设置项：`agentdrift.adapter`（mock|claude）、`agentdrift.tasks`、`agentdrift.baseline`、`agentdrift.cliCommand`。
+
+**两条安全线**：
+
+1. webview 注入 CSP（`default-src 'none'`，只放行内联样式/脚本），report HTML 视为不可信输入。
+2. package.json 必须声明 `capabilities.untrustedWorkspaces.supported: true`——否则带 `main` 入口的扩展在**受限模式**下会被 VS Code 静默禁用（面板"装了却看不到"的头号原因）。
+
 ## 2. 代码框架
 
 ### 2.1 分层与依赖方向
@@ -156,6 +182,14 @@ cli ──▶ runner ──▶ adapters
 | `src/report.ts` | 渲染终端表格 / JSON | 读磁盘、做判定 |
 | `src/html.ts` | 渲染单文件 HTML 报告 | 读磁盘、起服务、引外部资源 |
 | `src/cli.ts` | 参数解析与流程调度 | 藏业务规则 |
+
+扩展（`vscode-extension/src/`，与上面互不 import，只通过 JSON 文件对话）：
+
+| 文件 | 职责 | 不允许做的事 |
+| --- | --- | --- |
+| `locate.ts` | 定位 CLI 命令与参数拼装 | 起进程 |
+| `model.ts` | 解析 `last-run.json`、分组、文案 | 依赖 `vscode` 模块（要能单测） |
+| `extension.ts` | 树视图、状态栏、spawn、webview | 重新实现判定规则 |
 
 ### 2.3 数据契约
 

@@ -1,4 +1,4 @@
-node_modules/
+﻿node_modules/
 .agentdrift/
 dist/
 *.log
@@ -7,4 +7,4 @@ report.html
 *.report.html
 report.htm
 vscode-extension/out/
-*.vsix
+vscode-extension/*.vsix

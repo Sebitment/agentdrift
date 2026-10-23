@@ -1,11 +1,17 @@
 {
   "name": "agentdrift",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Regression tests for coding agents: catch token bloat and runaway file edits before they ship.",
   "type": "module",
   "bin": {
     "agentdrift": "./src/cli.ts"
   },
+  "files": [
+    "src",
+    "tasks",
+    "README.md",
+    "LICENSE"
+  ],
   "engines": {
     "node": ">=22.18"
   },

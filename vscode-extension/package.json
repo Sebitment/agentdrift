@@ -2,13 +2,13 @@
   "name": "agentdrift-vscode",
   "displayName": "agentdrift",
   "description": "Regression results for coding agents, inside VS Code",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "sebitment",
   "license": "MIT",
   "repository": { "type": "git", "url": "https://github.com/Sebitment/agentgate.git" },
   "engines": { "vscode": "^1.85.0" },
   "categories": ["Testing", "Other"],
-  "keywords": ["agent", "regression", "testing", "ci", "llm"],
+  "keywords": ["agent", "regression", "testing", "ci", "llm", "claude-code"],
   "capabilities": {
     "untrustedWorkspaces": { "supported": true },
     "virtualWorkspaces": { "supported": true }
@@ -24,18 +24,52 @@
     "views": {
       "agentdrift": [{ "id": "agentdrift.tasks", "name": "Tasks" }]
     },
+    "configuration": {
+      "title": "agentdrift",
+      "properties": {
+        "agentdrift.adapter": {
+          "type": "string",
+          "enum": ["mock", "claude"],
+          "default": "mock",
+          "markdownDescription": "Which agent adapter to run. `mock` replays the fixtures offline; `claude` runs the real [Claude Code](https://claude.com/claude-code) CLI."
+        },
+        "agentdrift.tasks": {
+          "type": "string",
+          "default": "tasks",
+          "markdownDescription": "Task directory, relative to the workspace root (or absolute)."
+        },
+        "agentdrift.baseline": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Compare every run against `.agentdrift/baseline.json` (`--baseline`). Save one first with **agentdrift: Save baseline**."
+        },
+        "agentdrift.cliCommand": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Full command used to invoke the CLI, e.g. `node \"C:/tools/agentdrift/src/cli.ts\"` or `npx agentdrift`. Empty means auto-detect: local `node_modules/.bin`, this checkout, PATH, then `npx`."
+        }
+      }
+    },
     "commands": [
       { "command": "agentdrift.run", "title": "agentdrift: Run tasks", "icon": "$(play)" },
+      { "command": "agentdrift.runTask", "title": "agentdrift: Run this task", "icon": "$(debug-start)" },
+      { "command": "agentdrift.saveBaseline", "title": "agentdrift: Save baseline", "icon": "$(pin)" },
       { "command": "agentdrift.openReport", "title": "agentdrift: Open HTML report" },
       { "command": "agentdrift.refresh", "title": "agentdrift: Refresh", "icon": "$(refresh)" }
     ],
     "menus": {
       "view/title": [
         { "command": "agentdrift.run", "when": "view == agentdrift.tasks", "group": "navigation@1" },
-        { "command": "agentdrift.refresh", "when": "view == agentdrift.tasks", "group": "navigation@2" }
+        { "command": "agentdrift.saveBaseline", "when": "view == agentdrift.tasks", "group": "navigation@2" },
+        { "command": "agentdrift.refresh", "when": "view == agentdrift.tasks", "group": "navigation@3" }
+      ],
+      "view/item/context": [
+        { "command": "agentdrift.runTask", "when": "view == agentdrift.tasks && viewItem == agentdrift.task", "group": "inline@1" },
+        { "command": "agentdrift.runTask", "when": "view == agentdrift.tasks && viewItem == agentdrift.task", "group": "1_run@1" }
       ],
       "commandPalette": [
         { "command": "agentdrift.run" },
+        { "command": "agentdrift.saveBaseline" },
         { "command": "agentdrift.openReport" },
         { "command": "agentdrift.refresh" }
       ]
@@ -45,6 +79,7 @@
     "build": "tsc -p .",
     "watch": "tsc -p . -w",
     "test": "tsc -p . && node --test \"test/*.test.mjs\"",
+    "package": "vsce package --no-dependencies",
     "vscode:prepublish": "npm run build"
   },
   "devDependencies": {
