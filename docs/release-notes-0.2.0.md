@@ -19,9 +19,12 @@ vague-bug     pass    11,580~  -     1ms   0
 **CLI** (Node 22.18+, zero runtime dependencies):
 
 ```bash
-npm i -D agentdrift
+npm i -D github:Sebitment/agentgate#v0.2.0
 npx agentdrift run --adapter mock      # offline, no API key
 ```
+
+Install from GitHub rather than npm: the package is not published to the registry yet, and the git
+install ships the compiled `dist/` so there is no build step on your side.
 
 **Panel** — download `agentdrift-vscode-0.2.0.vsix` below, then:
 
@@ -66,6 +69,6 @@ Claude Code **2.1.308**, task `fix-sum`: checks green, 0 stray files, **50,023 t
 安装：
 
 ```bash
-npm i -D agentdrift                                             # CLI
+npm i -D github:Sebitment/agentgate#v0.2.0                      # CLI
 code --install-extension agentdrift-vscode-0.2.0.vsix           # 面板
 ```

@@ -13,7 +13,7 @@ code --install-extension releases/agentdrift-vscode-0.2.0.vsix
 ```
 
 Or *Extensions → `…` → Install from VSIX…*. The panel works in any folder — install the CLI in that
-project (`npm i -D agentdrift`) and it is found automatically.
+project (`npm i -D github:Sebitment/agentgate`) and it is found automatically.
 
 From source:
 
