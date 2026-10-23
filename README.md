@@ -235,9 +235,19 @@ npm run typecheck
 
 ## Publishing
 
-Create an **empty** repository on GitHub — no README, no .gitignore, no license — then run the
-"push an existing repository from the command line" snippet that GitHub shows you on that page.
-The repository is already initialised here with a single `main` commit, so nothing else is needed.
+```bash
+npm test && npm run typecheck                 # CLI unit tests + types
+npm publish                                   # → agentdrift on npm (zero deps, ships src/ + tasks/)
+
+cd vscode-extension && npm test && npm run package
+# → agentdrift-vscode-<version>.vsix  (attach it to the GitHub release)
+```
+
+Then create a release tagged `v0.2.0`, paste the body from
+[docs/release-notes-0.2.0.md](docs/release-notes-0.2.0.md), and upload the `.vsix` as an asset.
+For the Marketplace, `vsce publish` with a personal access token does the same thing with one command.
+
+Release history lives in [CHANGELOG.md](CHANGELOG.md).
 
 ## Design rules
 

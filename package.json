@@ -10,6 +10,7 @@
     "src",
     "tasks",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "engines": {
