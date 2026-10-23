@@ -22,7 +22,7 @@
     "demo": "node src/cli.ts run --adapter mock",
     "list": "node src/cli.ts list",
     "build": "tsc -p tsconfig.build.json",
-    "prepare": "npm run build",
+    "prepack": "npm run build",
     "test": "node --test \"test/*.test.mjs\"",
     "typecheck": "tsc --noEmit",
     "ext:build": "npm --prefix vscode-extension run build",
