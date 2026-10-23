@@ -151,7 +151,8 @@ Being a pure reader also makes it safe in untrusted workspaces — it declares
 
 ## Quickstart
 
-Requires **Node >= 22.18** — the CLI runs TypeScript directly, there is no build step.
+Requires **Node >= 22.18**. Running from a clone executes the TypeScript sources directly (Node strips
+types, no build step); the published package ships prebuilt JavaScript in `dist/`.
 
 ```bash
 git clone <this repo> agentdrift
@@ -173,10 +174,12 @@ node src/cli.ts run --adapter claude --tasks tasks
 ### Use it in your own project
 
 ```bash
-npm i -D agentdrift          # zero runtime dependencies, runs on Node 22.18+
-mkdir -p tasks/hello/repo
-npx agentdrift list          # walkthrough in docs/WORKFLOW.md
+npm i -D github:Sebitment/agentgate   # works today, no registry needed
+npx agentdrift list                    # walkthrough in docs/WORKFLOW.md
 ```
+
+Once the package is on npm, the same thing is `npm i -D agentdrift`. Either way the CLI has zero
+runtime dependencies.
 
 Point `--tasks` at a directory inside your repo; the agent gets a copy of `tasks/hello/repo/`, never
 your working tree.
