@@ -4,7 +4,7 @@ A sidebar view over the last `agentdrift` run. It reads `.agentdrift/last-run.js
 CLI run) and shows the same verdict the terminal does — failed tasks first, each with the reason it
 went red.
 
-![sidebar](https://raw.githubusercontent.com/Sebitment/agentgate/main/docs/screenshot-vscode.png)
+![sidebar](https://raw.githubusercontent.com/Sebitment/agentdrift/main/docs/screenshot-vscode.png)
 
 ## Install
 
@@ -13,7 +13,7 @@ code --install-extension releases/agentdrift-vscode-0.2.0.vsix
 ```
 
 Or *Extensions → `…` → Install from VSIX…*. The panel works in any folder — install the CLI in that
-project (`npm i -D github:Sebitment/agentgate`) and it is found automatically.
+project (`npm i -D github:Sebitment/agentdrift`) and it is found automatically.
 
 From source:
 

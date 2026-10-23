@@ -5,7 +5,7 @@
   "version": "0.2.0",
   "publisher": "sebitment",
   "license": "MIT",
-  "repository": { "type": "git", "url": "https://github.com/Sebitment/agentgate.git" },
+  "repository": { "type": "git", "url": "https://github.com/Sebitment/agentdrift.git" },
   "engines": { "vscode": "^1.85.0" },
   "categories": ["Testing", "Other"],
   "keywords": ["agent", "regression", "testing", "ci", "llm", "claude-code"],

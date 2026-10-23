@@ -174,7 +174,7 @@ node src/cli.ts run --adapter claude --tasks tasks
 ### Use it in your own project
 
 ```bash
-npm i -D github:Sebitment/agentgate#v0.2.0   # pinned tag, ships compiled dist/, no registry needed
+npm i -D github:Sebitment/agentdrift#v0.2.0   # pinned tag, ships compiled dist/, no registry needed
 npx agentdrift list                          # walkthrough in docs/WORKFLOW.md
 ```
 
