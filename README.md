@@ -2,11 +2,47 @@
 
 **Regression tests for coding agents.**
 
+[![CI](https://github.com/Sebitment/agentdrift/actions/workflows/ci.yml/badge.svg)](https://github.com/Sebitment/agentdrift/actions/workflows/ci.yml)
+[![MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![node](https://img.shields.io/badge/node-%E2%89%A5%2022.18-informational)](package.json)
+
 You test your code. You don't test what the agent does to it.
 
-agentdrift treats an agent run like a build artifact: hand it a task on a fixture repo, then diff
-what it *spent* and what it *touched*. If it blows the token budget, edits files you never
-mentioned, or breaks a test, the run goes red — before it reaches `main`.
+agentdrift runs an agent against a **fixture repo** and decides on evidence: did the checks pass,
+what did it spend, what did it touch. A run that passes but burns 10× the tokens, or edits
+`package.json` to get there, goes red — before it reaches `main`.
+
+![The HTML report](docs/screenshot.png)
+
+## 30 seconds, no API key, no network
+
+```bash
+git clone https://github.com/Sebitment/agentdrift && cd agentdrift
+npm run demo          # three fixture tasks against a mock agent
+start report.html     # macOS/Linux: open report.html
+```
+
+Against the agent you actually use — same tasks, same report:
+
+```bash
+node src/cli.ts run --adapter claude --only fix-sum
+```
+
+To gate your own repo, point `--tasks` at a directory of fixtures (see [Task format](#task-format)):
+
+```bash
+node src/cli.ts run --adapter claude --tasks tasks --save-baseline    # first run
+node src/cli.ts run --adapter claude --tasks tasks --baseline --fail-on-regression
+```
+
+## What it catches
+
+| What you notice | What agentdrift measures | Where the number comes from |
+|---|---|---|
+| "It said it was done" | `checks` — plain shell commands | exit code + stdout, never an LLM verdict |
+| "It got more expensive" | tokens per task vs budget or baseline | the CLI's own usage report; `~` marks estimates |
+| "It touched things it shouldn't" | files changed outside `allow` | `git status` after the run |
+| "It broke something else" | baseline diff: `pass → FAIL`, new strays | the saved `last-run.json` / `baseline.json` |
 
 ```
 TASK          RESULT  TOKENS   COST  TIME  STRAY
@@ -17,6 +53,11 @@ vague-bug     pass    11,580~  -     1ms   0
 
 3/3 passed  ·  30,300 tokens  ·  0 stray files  ·  4ms
 ```
+
+<details>
+<summary><b>Two failures it is built to catch</b></summary>
+
+Green checks, broken output — the unit test only compared exit codes until `expectStdout` was added:
 
 ```
 TASK              RESULT  TOKENS   COST  TIME  STRAY
@@ -40,6 +81,8 @@ scope-creep  FAIL    13,920~  -     2ms   1 package.json
 scope-creep
   files outside allow: package.json
 ```
+
+</details>
 
 ## Why another agent tool
 
